@@ -59,6 +59,7 @@ dependencies {
     runtimeOnly(projects.config.github)
     runtimeOnly(projects.config.local)
     runtimeOnly(projects.config.secretFile)
+    runtimeOnly(projects.storage.azureBlob)
     runtimeOnly(projects.storage.database)
     runtimeOnly(projects.storage.s3)
     runtimeOnly(projects.transport.activemqartemis)
