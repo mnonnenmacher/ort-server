@@ -90,6 +90,7 @@ dependencies {
     runtimeOnly(projects.secrets.file)
     runtimeOnly(projects.secrets.scaleway)
     runtimeOnly(projects.secrets.vault)
+    runtimeOnly(projects.storage.azureBlob)
     runtimeOnly(projects.storage.database)
     runtimeOnly(projects.storage.s3)
     runtimeOnly(projects.transport.activemqartemis)
