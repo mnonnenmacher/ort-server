@@ -87,6 +87,7 @@ dependencies {
 
     runtimeOnly(projects.config.secretFile)
     runtimeOnly(projects.logaccess.loki)
+    runtimeOnly(projects.secrets.azureKeyvault)
     runtimeOnly(projects.secrets.file)
     runtimeOnly(projects.secrets.scaleway)
     runtimeOnly(projects.secrets.vault)
