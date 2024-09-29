@@ -64,6 +64,7 @@ dependencies {
     runtimeOnly(projects.secrets.scaleway)
     runtimeOnly(projects.secrets.vault)
     runtimeOnly(projects.transport.activemqartemis)
+    runtimeOnly(projects.transport.azureServicebus)
     runtimeOnly(projects.transport.kubernetes)
     runtimeOnly(projects.transport.rabbitmq)
     runtimeOnly(projects.transport.sqs)
