@@ -69,6 +69,7 @@ dependencies {
     runtimeOnly(projects.storage.database)
     runtimeOnly(projects.storage.s3)
     runtimeOnly(projects.transport.activemqartemis)
+    runtimeOnly(projects.transport.azureServicebus)
     runtimeOnly(projects.transport.kubernetes)
     runtimeOnly(projects.transport.rabbitmq)
     runtimeOnly(projects.transport.sqs)

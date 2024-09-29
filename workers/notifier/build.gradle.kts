@@ -60,6 +60,7 @@ dependencies {
     runtimeOnly(projects.config.local)
     runtimeOnly(projects.config.secretFile)
     runtimeOnly(projects.transport.activemqartemis)
+    runtimeOnly(projects.transport.azureServicebus)
     runtimeOnly(projects.transport.kubernetes)
     runtimeOnly(projects.transport.rabbitmq)
     runtimeOnly(projects.transport.sqs)
