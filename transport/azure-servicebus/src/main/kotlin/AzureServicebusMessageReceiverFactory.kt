@@ -96,9 +96,14 @@ class AzureServicebusMessageReceiverFactory : MessageReceiverFactory {
             .buildProcessorClient()
 
         client.use {
+            logger.info("Starting message receiver for endpoint '${from.configPrefix}'.")
             it.start()
+            logger.info("Message receiver for endpoint '${from.configPrefix}' started, waiting for stop signal.")
             stopSignal.await()
+            logger.info("Received stop signal, stopping message receiver for endpoint '${from.configPrefix}'.")
             it.stop()
+            logger.info("Message receiver for endpoint '${from.configPrefix}' stopped.")
         }
+        logger.info("Message receiver for endpoint '${from.configPrefix}' closed.")
     }
 }
