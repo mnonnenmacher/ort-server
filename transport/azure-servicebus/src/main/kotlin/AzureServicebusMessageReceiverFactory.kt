@@ -56,6 +56,7 @@ class AzureServicebusMessageReceiverFactory : MessageReceiverFactory {
         val stopSignal = CompletableDeferred<Unit>()
 
         fun processMessage(context: ServiceBusReceivedMessageContext) {
+            context.complete()
             val message = AzureServicebusMessageConverter.toTransportMessage(context.message, serializer)
 
             MDC.put("traceId", message.header.traceId)
