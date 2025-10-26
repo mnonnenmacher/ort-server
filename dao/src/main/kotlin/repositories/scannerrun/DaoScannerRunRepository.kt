@@ -166,8 +166,21 @@ class DaoScannerRunRepository(private val db: Database) : ScannerRunRepository {
             )
             add(result)
         }
-    }
+    }.filterRecoveredFailures()
 }
+
+private fun Set<ProvenanceResolutionResult>.filterRecoveredFailures(): Set<ProvenanceResolutionResult> =
+     buildSet {
+        this@filterRecoveredFailures.groupBy { it.id }.forEach { (id, results) ->
+            if (results.size > 1) {
+                // `ScannerRun` allows only one result per identifier, so in case there are multiple results for the
+                // same identifier, prefer the successful one.
+                add(results.firstOrNull { it.packageProvenance != null } ?: results.first())
+            } else {
+                addAll(results)
+            }
+        }
+    }
 
 private fun createScannerConfiguration(
     scannerRunDao: ScannerRunDao,
