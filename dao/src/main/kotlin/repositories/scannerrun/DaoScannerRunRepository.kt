@@ -38,6 +38,7 @@ import org.eclipse.apoapsis.ortserver.model.runs.scanner.KnownProvenance
 import org.eclipse.apoapsis.ortserver.model.runs.scanner.ProvenanceResolutionResult
 import org.eclipse.apoapsis.ortserver.model.runs.scanner.ScannerConfiguration
 import org.eclipse.apoapsis.ortserver.model.runs.scanner.ScannerRun
+import org.eclipse.apoapsis.ortserver.model.runs.scanner.UnknownProvenance
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
@@ -121,66 +122,64 @@ class DaoScannerRunRepository(private val db: Database) : ScannerRunRepository {
     private fun getProvenanceResolutionResults(
         packageProvenances: Iterable<PackageProvenanceDao>
     ): Set<ProvenanceResolutionResult> = buildSet {
-        packageProvenances.forEach { packageProvenanceDao ->
-            val identifier = packageProvenanceDao.identifier.mapToModel()
+        packageProvenances.groupBy { it.identifier.mapToModel() }.forEach { (identifier, provenanceDaos) ->
+            val mappedProvenances = provenanceDaos.map { it to it.mapToModel() }
+            val successfulResult = mappedProvenances.find { (_, provenance) -> provenance is KnownProvenance }
 
-            val packageProvenance = packageProvenanceDao.mapToModel()
-            if (packageProvenance !is KnownProvenance) {
-                val result = ProvenanceResolutionResult(
+            val result = if (successfulResult != null) {
+                // If there was a successful provenance resolution for this identifier, use it and ignore any failed
+                // package provenance resolutions. This handles the case where resolving the first source code origin
+                // failed, but a later attempt for the other source code origin succeeded.
+
+                val packageProvenanceDao = successfulResult.first
+                val packageProvenance = successfulResult.second as KnownProvenance
+                val nestedProvenance = packageProvenanceDao.nestedProvenance
+
+                if (packageProvenanceDao.vcs != null && nestedProvenance == null) {
+                    // If the provenance is a repository provenance, but no nested provenance could be found, create an
+                    // error result.
+                    ProvenanceResolutionResult(
+                        id = identifier,
+                        packageProvenance = packageProvenance,
+                        nestedProvenanceResolutionIssue = Issue(
+                            timestamp = Clock.System.now(),
+                            source = "Scanner",
+                            message = "Could not resolve nested provenance for provenance '$packageProvenance'.",
+                            severity = Severity.ERROR
+                        )
+                    )
+                } else {
+                    ProvenanceResolutionResult(
+                        id = identifier,
+                        packageProvenance = packageProvenance,
+                        subRepositories = nestedProvenance?.subRepositories?.associate {
+                            it.path to it.vcs.mapToModel()
+                        }.orEmpty()
+                    )
+                }
+            } else {
+                // If there was no successful provenance resolution for this identifier, collect the errors from all
+                // failed attempts.
+                val errors = mappedProvenances.mapNotNull { (packageProvenanceDao, _) ->
+                    packageProvenanceDao.errorMessage
+                }
+
+                ProvenanceResolutionResult(
                     id = identifier,
                     packageProvenanceResolutionIssue = Issue(
                         timestamp = Clock.System.now(),
                         source = "Scanner",
-                        message = "Could not resolve provenance for package '$identifier': " +
-                                "${packageProvenanceDao.errorMessage}",
+                        message = "Could not resolve provenance for package '$identifier':\n" +
+                                errors.joinToString("\n"),
                         severity = Severity.ERROR
                     )
                 )
-                add(result)
-                return@forEach
             }
 
-            val nestedProvenance = packageProvenanceDao.nestedProvenance
-
-            if (packageProvenanceDao.vcs != null && nestedProvenance == null) {
-                val result = ProvenanceResolutionResult(
-                    id = identifier,
-                    packageProvenance = packageProvenance,
-                    nestedProvenanceResolutionIssue = Issue(
-                        timestamp = Clock.System.now(),
-                        source = "Scanner",
-                        message = "Could not resolve nested provenance for provenance '$packageProvenance'.",
-                        severity = Severity.ERROR
-                    )
-                )
-                add(result)
-                return@forEach
-            }
-
-            val result = ProvenanceResolutionResult(
-                id = identifier,
-                packageProvenance = packageProvenance,
-                subRepositories = nestedProvenance?.subRepositories?.associate {
-                    it.path to it.vcs.mapToModel()
-                }.orEmpty()
-            )
             add(result)
         }
-    }.filterRecoveredFailures()
-}
-
-private fun Set<ProvenanceResolutionResult>.filterRecoveredFailures(): Set<ProvenanceResolutionResult> =
-     buildSet {
-        this@filterRecoveredFailures.groupBy { it.id }.forEach { (id, results) ->
-            if (results.size > 1) {
-                // `ScannerRun` allows only one result per identifier, so in case there are multiple results for the
-                // same identifier, prefer the successful one.
-                add(results.firstOrNull { it.packageProvenance != null } ?: results.first())
-            } else {
-                addAll(results)
-            }
-        }
     }
+}
 
 private fun createScannerConfiguration(
     scannerRunDao: ScannerRunDao,
