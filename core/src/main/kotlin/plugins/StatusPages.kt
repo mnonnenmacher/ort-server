@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory
 private val logger = LoggerFactory.getLogger("StatusPages")
 
 fun Application.configureStatusPages() {
+    logger.info("test")
+
     install(StatusPages) {
         exception<AuthenticationException> { call, _ ->
             call.respond(HttpStatusCode.Unauthorized)
