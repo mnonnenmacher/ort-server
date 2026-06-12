@@ -94,6 +94,7 @@ internal inline fun <reified T> getConfigFileWithDefault(
     getConfigFile: (path: String, context: Context?, exceptionHandler: (ConfigException) -> T) -> T
 ): T = if (path != null && path != defaultPath) {
     getConfigFile(path, context) {
+        logger.info("test")
         logger.error("Could not get config file from path '$path'.")
         throw it
     }
